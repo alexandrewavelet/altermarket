@@ -91,9 +91,11 @@ class FetchCardPool extends Command
             $cards = $cards->merge($page['hydra:member']);
         }
 
-        return $cards->mapToGroups(function ($card) {
-            return [$card['mainFaction']['reference'] => $card['name']];
-        });
+        return $cards
+            ->sortBy('name')
+            ->mapToGroups(function ($card) {
+                return [$card['mainFaction']['reference'] => $card['name']];
+            })->sortKeys();
     }
 
     private function saveCardPool(Collection $cardPool): void

@@ -2,21 +2,53 @@
 
 namespace App\Application\Altered\FetchMarketplace;
 
+use App\Domain\MarketplaceOffers;
+use App\Presenter\Cli\Services\Spinner;
+use Generator;
+use function Laravel\Prompts\note;
 use function Laravel\Prompts\progress;
-use function Laravel\Prompts\spin;
 
 readonly class FetchMarketplaceInput
 {
     public function __construct(
+        private array $factions,
     ) {
     }
 
-    public function fetchMarketplace(callable $fetchMarketplaceData): void
+    public function getFactions(): array
     {
-        spin(
-            $fetchMarketplaceData,
-            'Fetching marketplace data...'
-        );
+        return $this->factions;
+    }
+
+    /**
+     * @param Generator<MarketplaceOffers> $fetchMarketplace
+     */
+    public function fetchMarketplace(Generator $fetchMarketplace): void
+    {
+        $faction = null;
+        $card = null;
+
+        $spinner = new Spinner('Fetching marketplace data');
+        $spinner->start();
+
+        foreach ($fetchMarketplace as $marketplaceOffers) {
+            if (
+                $faction !== $marketplaceOffers->faction
+                || $card !== $marketplaceOffers->card
+            ) {
+                $spinner->stop();
+
+                $faction = $marketplaceOffers->faction;
+                $card = $marketplaceOffers->card;
+
+                $spinner = new Spinner("Fetching data for $faction - $card");
+                $spinner->start();
+            }
+        }
+
+        $spinner->stop();
+
+        info('Fetching marketplace data done');
     }
 
     public function retrieveMissingCardDescriptions(
@@ -24,6 +56,8 @@ readonly class FetchMarketplaceInput
         callable $retrieveCardDescriptions,
     ): void {
         if ($missingCardDescriptionsCount === 0) {
+            note('No missing card descriptions to retrieve');
+
             return;
         }
 
@@ -39,5 +73,7 @@ readonly class FetchMarketplaceInput
         }
 
         $progress->finish();
+
+        info('Retrieving missing card descriptions done');
     }
 }
