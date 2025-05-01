@@ -12,12 +12,16 @@ return new class extends Migration
             $table->id();
             $table->string('identifier')->unique();
             $table->string('name');
+            $table->string('faction');
+            $table->string('set');
+            $table->string('image');
             $table->integer('main_cost');
             $table->integer('recall_cost');
             $table->integer('mountain_power');
             $table->integer('ocean_power');
             $table->integer('forest_power');
             $table->string('main_effect')->nullable();
+            $table->string('echo_effect')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

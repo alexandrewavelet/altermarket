@@ -2,7 +2,9 @@
 
 namespace App\Infrastructure\Altered;
 
+use App\Domain\Card;
 use App\Domain\Offer;
+use App\Infrastructure\Mappers\CardMapper;
 use App\Infrastructure\Mappers\OfferMapper;
 use Generator;
 use GuzzleHttp\Client;
@@ -14,6 +16,7 @@ readonly class AlteredClient
 
     public function __construct(
         private OfferMapper $offerMapper,
+        private CardMapper $cardMapper,
     )
     {
         $this->client = new Client([
@@ -55,7 +58,7 @@ readonly class AlteredClient
                 throw new AlteredApiException(
                     $e->getCode() === 401
                         ? 'Not logged in to Altered: Please update Bearer token'
-                        : 'An error occurred while fetching the marketplace offers: ' . $e->getMessage(),
+                        : "An error occurred while fetching the marketplace offers: {$e->getMessage()}",
                     code: $e->getCode(),
                     previous: $e
                 );
@@ -73,5 +76,31 @@ readonly class AlteredClient
                 $page++;
             }
         }
+    }
+
+    /**
+     * @throws AlteredApiException
+     */
+    public function getCard(string $identifier): Card
+    {
+        try {
+            $response = $this->client->get('/cards/'.$identifier, [
+                'query' => [
+                    'locale' => 'fr-fr',
+                ],
+            ]);
+        } catch (GuzzleException $e) {
+            throw new AlteredApiException(
+                $e->getCode() === 401
+                    ? 'Not logged in to Altered: Please update Bearer token'
+                    : "An error occurred while retrieving card $identifier: {$e->getMessage()}",
+                code: $e->getCode(),
+                previous: $e
+            );
+        }
+
+        return $this->cardMapper->mapFromApi(
+            json_decode($response->getBody(), true),
+        );
     }
 }

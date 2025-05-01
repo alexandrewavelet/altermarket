@@ -29,6 +29,12 @@ class FetchMarketplace extends Command
             return self::FAILURE;
         }
 
+        if ($output->someCardsCouldNotBeRetrieved()) {
+            $this->warn(
+                $output->howManyCardsCouldNotBeRetrieved().' cards could not be retrieved'
+            );
+        }
+
         $this->info('Marketplace data retrieved!');
 
         return self::SUCCESS;
