@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'altered' => [
+        'api_url' => 'https://api.altered.gg',
+        'bearer_token' => env('ALTERED_BEARER_TOKEN'),
+        'consumer_contact' => env('ALTERED_CONSUMER_CONTACT', 'None'),
+    ],
 ];
