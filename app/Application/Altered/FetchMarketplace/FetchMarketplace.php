@@ -2,6 +2,7 @@
 
 namespace App\Application\Altered\FetchMarketplace;
 
+use App\Domain\MarketplaceOffers;
 use App\Domain\Offer;
 use App\Infrastructure\Altered\AlteredApiException;
 use App\Infrastructure\Altered\AlteredClient;
@@ -22,7 +23,7 @@ readonly class FetchMarketplace
     public function execute(FetchMarketplaceInput $input): FetchMarketplaceOutput
     {
         $input->fetchMarketplace(
-            fn() => $this->fetchMarketplaceOffers()
+            $this->fetchMarketplaceOffers($input),
         );
 
         if ($this->output->couldNotFetchAlteredMarketplace()) {
@@ -39,11 +40,20 @@ readonly class FetchMarketplace
         return $this->output;
     }
 
-    private function fetchMarketplaceOffers(): void
+    /**
+     * @return Generator<MarketplaceOffers>
+     */
+    private function fetchMarketplaceOffers(FetchMarketplaceInput $input): Generator
     {
         try {
-            foreach ($this->alteredApi->getMarketplaceOffers() as $offers) {
-                $this->offersRepository->saveOffers($offers);
+            $marketplaceOffers = $this->alteredApi->getMarketplaceOffers(
+                $input->getFactions()
+            );
+
+            foreach ($marketplaceOffers as $offers) {
+                yield $offers;
+
+                $this->offersRepository->saveOffers($offers->offers);
             }
         } catch (AlteredApiException $e) {
             $this->output->anErrorOccurredFetchingAlteredMarketplace(

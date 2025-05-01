@@ -3,7 +3,9 @@
 namespace App\Infrastructure\Altered;
 
 use App\Domain\Card;
+use App\Domain\MarketplaceOffers;
 use App\Domain\Offer;
+use App\Infrastructure\Altered\CardPool\Card as AlteredCard;
 use App\Infrastructure\Mappers\CardMapper;
 use App\Infrastructure\Mappers\OfferMapper;
 use Generator;
@@ -17,6 +19,7 @@ readonly class AlteredClient
     public function __construct(
         private OfferMapper $offerMapper,
         private CardMapper $cardMapper,
+        private CardPool $cardPool,
     )
     {
         $this->client = new Client([
@@ -31,10 +34,34 @@ readonly class AlteredClient
     }
 
     /**
+     * @param string[] $factions
+     * @return Generator<MarketplaceOffers[]>
+     * @throws AlteredApiException
+     */
+    public function getMarketplaceOffers(array $factions = []): Generator
+    {
+        $cards = $this->cardPool->getCardsPerFaction($factions);
+
+        foreach ($cards as $card) {
+            $marketplaceOffers = $this->getMarketplaceOffersForCard(
+                $card
+            );
+
+            foreach ($marketplaceOffers as $offers) {
+                yield new MarketplaceOffers(
+                    faction: $card->faction,
+                    card: $card->name,
+                    offers: $offers,
+                );
+            }
+        }
+    }
+
+    /**
      * @return Generator<Offer[]>
      * @throws AlteredApiException
      */
-    public function getMarketplaceOffers(): Generator
+    private function getMarketplaceOffersForCard(AlteredCard $card): Generator
     {
         $page = 1;
         $hasNextPage = true;
@@ -47,8 +74,8 @@ readonly class AlteredClient
                         'inSale' => 'true',
                         'rarity[]' => 'UNIQUE',
                         'cardType[]' => 'CHARACTER',
-                        'factions[]' => 'YZ',
-                        'translations.name' => 'caregiver',
+                        'factions[]' => $card->faction,
+                        'translations.name' => '"'.$card->name.'"',
                         'locale' => 'fr-fr',
                         'itemsPerPage' => 36,
                         'order[price]' => 'ASC',
