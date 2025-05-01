@@ -2,6 +2,7 @@
 
 namespace App\Application\Altered\FetchMarketplace;
 
+use function Laravel\Prompts\progress;
 use function Laravel\Prompts\spin;
 
 readonly class FetchMarketplaceInput
@@ -10,11 +11,33 @@ readonly class FetchMarketplaceInput
     ) {
     }
 
-    public function fetchMarketplace(callable $fetch): void
+    public function fetchMarketplace(callable $fetchMarketplaceData): void
     {
         spin(
-            $fetch,
+            $fetchMarketplaceData,
             'Fetching marketplace data...'
         );
+    }
+
+    public function retrieveMissingCardDescriptions(
+        int $missingCardDescriptionsCount,
+        callable $retrieveCardDescriptions,
+    ): void {
+        if ($missingCardDescriptionsCount === 0) {
+            return;
+        }
+
+        $progress = progress(
+            label: 'Retrieve missing card descriptions',
+            steps: $missingCardDescriptionsCount
+        );
+
+        $progress->start();
+
+        foreach ($retrieveCardDescriptions() as $cardRetrieved) {
+            $progress->advance();
+        }
+
+        $progress->finish();
     }
 }

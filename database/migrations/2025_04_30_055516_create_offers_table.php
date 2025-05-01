@@ -14,7 +14,7 @@ return new class extends Migration
                 ->constrained('cards')
                 ->cascadeOnDelete();
             $table->string('identifier')->unique();
-            $table->float('price', 2)->nullable();
+            $table->integer('price')->nullable();
             $table->boolean('in_sale');
             $table->date('put_in_sale_at')->nullable();
             $table->date('sold_at')->nullable();

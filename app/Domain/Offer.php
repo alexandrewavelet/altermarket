@@ -8,7 +8,7 @@ readonly class Offer
 {
     public function __construct(
         private string $identifier,
-        private ?int $price,
+        private ?int $priceInCents,
         private bool $inSale,
         private CarbonImmutable $putInSaleAt,
         private ?CarbonImmutable $soldAt,
@@ -22,7 +22,11 @@ readonly class Offer
 
     public function price(): ?float
     {
-        return $this->price / 100;
+        if ($this->priceInCents === null) {
+            return null;
+        }
+
+        return $this->priceInCents / 100;
     }
 
     public function isInSale(): bool
