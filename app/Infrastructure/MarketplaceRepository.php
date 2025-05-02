@@ -8,6 +8,7 @@ use App\Infrastructure\Laravel\Models\Card as CardModel;
 use App\Infrastructure\Laravel\Models\Offer as OfferModel;
 use App\Infrastructure\Mappers\OfferMapper;
 use Generator;
+use Illuminate\Database\Eloquent\Builder;
 
 readonly class MarketplaceRepository
 {
@@ -82,5 +83,32 @@ readonly class MarketplaceRepository
         OfferModel::query()
             ->where('identifier', $card->identifier())
             ->update(['card_id' => $model->id]);
+    }
+
+    public function putAllOffersOutOfSale(array $factions = []): void
+    {
+        OfferModel::query()
+            ->when($factions, function (Builder $query, $factions) {
+                $query->whereRelation(
+                    'card',
+                    fn (Builder $query) => $query->whereIn('faction', $factions),
+                );
+            })
+            ->update(['in_sale' => false]);
+    }
+
+    public function setSoldAtToNowForSoldOffersWithoutSoldDate(
+        array $factions = []
+    ): void {
+        OfferModel::query()
+            ->where('in_sale', false)
+            ->whereNull('sold_at')
+            ->when($factions, function (Builder $query, $factions) {
+                $query->whereRelation(
+                    'card',
+                    fn (Builder $query) => $query->whereIn('faction', $factions),
+                );
+            })
+            ->update(['sold_at' => now()]);
     }
 }

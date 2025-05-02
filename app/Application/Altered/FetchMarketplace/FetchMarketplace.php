@@ -15,13 +15,17 @@ readonly class FetchMarketplace
 
     public function __construct(
         private AlteredClient $alteredApi,
-        private MarketplaceRepository $offersRepository,
+        private MarketplaceRepository $marketplaceRepository,
     ) {
         $this->output = new FetchMarketplaceOutput();
     }
 
     public function execute(FetchMarketplaceInput $input): FetchMarketplaceOutput
     {
+        $this->marketplaceRepository->putAllOffersOutOfSale(
+            $input->getFactions()
+        );
+
         $input->fetchMarketplace(
             $this->fetchMarketplaceOffers($input),
         );
@@ -30,11 +34,16 @@ readonly class FetchMarketplace
             return $this->output;
         }
 
-        $missingCardDescriptionsCount = $this->offersRepository->countOffersWithoutCardDescription();
+        $missingCardDescriptionsCount = $this->marketplaceRepository
+            ->countOffersWithoutCardDescription();
 
         $input->retrieveMissingCardDescriptions(
             $missingCardDescriptionsCount,
             fn() => $this->fillMissingCardDescriptions(),
+        );
+
+        $this->marketplaceRepository->setSoldAtToNowForSoldOffersWithoutSoldDate(
+            $input->getFactions()
         );
 
         return $this->output;
@@ -53,7 +62,7 @@ readonly class FetchMarketplace
             foreach ($marketplaceOffers as $offers) {
                 yield $offers;
 
-                $this->offersRepository->saveOffers($offers->offers);
+                $this->marketplaceRepository->saveOffers($offers->offers);
             }
         } catch (AlteredApiException $e) {
             $this->output->anErrorOccurredFetchingAlteredMarketplace(
@@ -67,7 +76,7 @@ readonly class FetchMarketplace
      */
     private function fillMissingCardDescriptions(): Generator
     {
-        $offers = $this->offersRepository->getOffersWithoutCardDescription();
+        $offers = $this->marketplaceRepository->getOffersWithoutCardDescription();
 
         foreach ($offers as $offer) {
             $this->fillCardDescription($offer);
@@ -89,6 +98,6 @@ readonly class FetchMarketplace
             return;
         }
 
-        $this->offersRepository->saveCardDescription($card);
+        $this->marketplaceRepository->saveCardDescription($card);
     }
 }
